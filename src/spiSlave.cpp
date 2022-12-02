@@ -51,3 +51,8 @@ void spi_on_interrupt() {
 	}
 }
 
+void spi_swap_buffers() {
+	while(!(SPI_SS_VPORT.IN & (1<< SPI_SS_PPIN));
+	//TODO: swap nimbles
+	      }
+
