@@ -4,8 +4,8 @@
 struct SPI_STATE_t {
 	uint8_t buffer[2][256];
 	bool active, direction;
-	uint8_t *base_address;
-	uint8_t pointer;
+	uint8_t *dma_base_address, *dma_pointer;
+	uint8_t *access_base_address;
 };
 
 //__attribute__ ((address (0x3500)))

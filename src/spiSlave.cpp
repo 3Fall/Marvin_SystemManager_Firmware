@@ -22,26 +22,25 @@ inline void enableDREI() { SPI0.INTCTRL = (SPI0.INTCTRL | (SPI_DREIE_bm)); }
 bool spi_is_transmitting() { return ~SPI_SS_VPORT.IN & (1 << SPI_SS_PPIN); }
 
 void spi_on_interrupt() {	
-	if(!(SPI0.INTFLAGS & SPI_TXCIF_bm)) {
-
 	uint8_t data = SPI0.DATA;
 
-	//Assume RXCIF
-	if(!spi_state.active) {
+	if(spi_state.active && !(SPI0.INTFLAGS & SPI_TXCIE_bm)) {
+		SPI0.DATA = *spi_state.dma_pointer;
+		
+		if(spi_state.direction && ((uint8_t)spi_state.dma_pointer & (1 << 7))) 
+			*spi_state.dma_pointer = data;
+
+		//magick to minimise number of operands
+		uint8_t pos = (int)(void*)spi_state.dma_pointer;
+		*(uint8_t*)(void*)&spi_state.dma_pointer = ++pos;
+
+		//SPI0.INTFLAGS = SPI_DREIF_bm;
+	} else if(!spi_state.active) {
 		//first transfer
 		spi_state.direction = (data >> 7);
-		spi_state.pointer = data & ~(1 << 7);
+		//spi_state.pointer = data | ~(1 << 7);
+		spi_state.dma_pointer = (uint8_t*)((int)spi_state.dma_base_address + data);
 		SPI0.DATA = 69; //TODO: PUT status byte in
-	} else {
-		if(spi_state.direction && (spi_state.pointer & (1 << 6))) 
-			*(uint8_t*)((int)spi_state.base_address | spi_state.pointer) = data;
-
-		SPI0.DATA = *(uint8_t*)((int)spi_state.base_address | spi_state.pointer);
-
-		spi_state.pointer = ++spi_state.pointer & ~(1 << 7); 
-
-		SPI0.INTFLAGS = SPI_DREIF_bm;
-	}
 	} else {
 		//Transfer completed - reset perypherial
 		SPI0.INTFLAGS |= SPI_TXCIF_bm; //clear by hand
