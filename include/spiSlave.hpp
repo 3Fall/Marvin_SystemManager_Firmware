@@ -10,7 +10,9 @@ struct SPI_STATE_t {
 
 //__attribute__ ((address (0x3500)))
 
+//TODO: align to 256-byte boundary
 extern SPI_STATE_t  spi_state;
+extern void on_spi_write();
 
 void spi_slave_init();
 

@@ -1,5 +1,7 @@
 # API doc
 
+I am thinking a direct memory access with some remot function call
+
 | Byte Offset | Field byte length | Field Type | Name | Descritption | RW |
 |-------------|-------------------|------------|------|--------------|----|
 | 0x00 | 2  | bit-flag | System status | . | R |
@@ -15,3 +17,5 @@
 | 0x1E | 4 | float | 3V3 current | | R |
 | 0x22 | 4 | float | V5P current | | R| 
 | 0x26 | 4 | float | V5L current | | R|
+| -padding-| |  | | | |
+| 0x80 | ? | ? | Writable region | | W | 
