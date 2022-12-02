@@ -16,3 +16,4 @@ void spi_slave_init();
 
 inline bool spi_is_transmitting();
 void spi_on_interrupt();
+void swap_buffers();
