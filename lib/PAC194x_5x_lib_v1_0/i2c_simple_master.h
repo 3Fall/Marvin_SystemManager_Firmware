@@ -1,8 +1,9 @@
 /**
 \file
-\defgroup doc_driver_uart_code UART Driver Source Code Reference
-\ingroup doc_driver_uart
-\brief This file contains the UART configurations selected by the user in the UART Foundation Services MCC Interface.
+\defgroup doc_driver_i2c_code I2C Simple Driver Source Code Reference
+\ingroup doc_driver_i2c
+\brief This file contains the API that implements the I2C simple master driver functionalities.
+
 \copyright (c) 2020 Microchip Technology Inc. and its subsidiaries.
 \page License
     (c) 2020 Microchip Technology Inc. and its subsidiaries. You may use this
@@ -24,30 +25,23 @@
 
     MICROCHIP PROVIDES THIS SOFTWARE CONDITIONALLY UPON YOUR ACCEPTANCE OF THESE
     TERMS.
-**/
+*/
 
-#ifndef _UART_H
-#define _UART_H
-
+#ifndef I2C_SIMPLE_MASTER_H
+#define	I2C_SIMPLE_MASTER_H
 
 #include <stdint.h>
-#include <stddef.h>
-#include "../include/usart1.h"
+#include <stdio.h>
+#include "twi0_master.h"
 
-/**
-*   \ingroup doc_driver_uart_code
-*   \enum uart_configurations_t uart.h
-*/
-typedef enum { 
-    UART0 /**<UART Name */
-} uart_configurations_t;
+uint8_t i2c_read1ByteRegister(twi0_address_t address, uint8_t reg);
+uint16_t i2c_read2ByteRegister(twi0_address_t address, uint8_t reg);
+void i2c_write1ByteRegister(twi0_address_t address, uint8_t reg, uint8_t data);
+void i2c_write2ByteRegister(twi0_address_t address, uint8_t reg, uint16_t data);
 
-/**
-*   \ingroup doc_driver_uart_code
-*   \struct uart_functions_t uart.h
-*/
-typedef struct { uint8_t (*Read)(void); void (*Write)(uint8_t txdata); bool (*TransmitReady)(void); bool (*DataReady)(void); void (*SetTxISR)(void (* interruptHandler)(void)); void (*RxDefaultISR)(void); void (*SetRxISR)(void (* interruptHandler)(void)); bool (*TransmitDone)(void); void (*TxDefaultISR)(void); void (*Initialize)(void);  } uart_functions_t;
+void i2c_writeNBytes(twi0_address_t address, void* data, size_t len);
+void i2c_readDataBlock(twi0_address_t address, uint8_t reg, void *data, size_t len);
+void i2c_readNBytes(twi0_address_t address, void *data, size_t len);
 
-extern const uart_functions_t uart[];
+#endif	/* I2C_SIMPLE_MASTER_H */
 
-#endif	// _UART_H

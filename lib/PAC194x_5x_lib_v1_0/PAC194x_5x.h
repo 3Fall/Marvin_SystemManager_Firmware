@@ -1,5 +1,5 @@
 /*
-  © 2021 Microchip Technology Inc. and its subsidiaries
+  ï¿½ 2021 Microchip Technology Inc. and its subsidiaries
 
   Subject to your compliance with these terms, you may use Microchip software
   and any derivatives exclusively with Microchip products. You're responsible
@@ -11,7 +11,7 @@
   BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL LOSS,
   DAMAGE, COST OR EXPENSE OF ANY KIND WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER
   CAUSED, EVEN IF MICROCHIP HAS BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE
-  FORESEEABLE. TO THE FULLEST EXTENT ALLOWED BY LAW, MICROCHIP’S TOTAL LIABILITY
+  FORESEEABLE. TO THE FULLEST EXTENT ALLOWED BY LAW, MICROCHIPï¿½S TOTAL LIABILITY
   ON ALL CLAIMS RELATED TO THE SOFTWARE WILL NOT EXCEED AMOUNT OF FEES, IF ANY,
   YOU PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
 */
@@ -45,10 +45,11 @@ extern "C" {
 //#define I2C2_CLASSIC_ENABLED
 //#define I2C3_CLASSIC_ENABLED
 //#define I2C4_CLASSIC_ENABLED
-//#define I2C_FSERV_ENABLED
+#define I2C_FSERV_ENABLED
 
 #ifdef I2C_FSERV_ENABLED
-#include "mcc_generated_files/drivers/i2c_simple_master.h"
+#include "i2c_simple_master.h"
+//#include "mcc_generated_files/drivers/i2c_simple_master.h"
 #endif
     
 #ifdef I2C_CLASSIC_ENABLED

@@ -27,7 +27,7 @@
 */
 
 
-#include "../include/twi0_master.h"
+#include "twi0_master.h"
 #include "i2c_simple_master.h"
 
 /****************************************************************/

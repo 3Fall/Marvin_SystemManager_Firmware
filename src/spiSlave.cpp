@@ -44,7 +44,7 @@ void spi_on_interrupt() {
 		//first transfer
 		spi_state.direction = (data >> 7);
 		spi_state.dma_pointer = (uint8_t*)((int)spi_state.dma_base_address | data);
-		SPI0.DATA = 69; //TODO: PUT status byte in
+		SPI0.DATA = *spi_state.dma_base_address; //TODO: PUT status byte in
 	} else {
 		//Transfer completed - reset perypherial
 		SPI0.INTFLAGS |= SPI_TXCIF_bm; //clear by hand
@@ -54,7 +54,7 @@ void spi_on_interrupt() {
 			on_spi_write();
 		}
 		//TODO: put status byte into the data reg
-		SPI0.DATA = 69;
+		SPI0.DATA = *spi_state.dma_base_address;
 	}
 }
 

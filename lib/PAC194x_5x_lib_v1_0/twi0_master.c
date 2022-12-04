@@ -31,7 +31,8 @@
 */
 
 
-#include "../include/twi0_master.h"
+#include "twi0_master.h"
+#include <Arduino.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
