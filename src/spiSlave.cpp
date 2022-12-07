@@ -38,6 +38,7 @@ void spi_swap_buffers() {
 	while(!(SPI_SS_VPORT.IN & (1<< SPI_SS_PPIN)));
 	_spi_swap_buffers_unchecked();	
 }
+//reference impl in C
 /*
 void spi_on_ss_transission() {
 	if(VPORTA.IN & (1 << 4)) {

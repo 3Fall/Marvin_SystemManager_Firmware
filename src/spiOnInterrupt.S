@@ -5,17 +5,16 @@
 .global SPI0_INT_vect 
 .global SS_PORT_INTERRUPT_VECT
 
+;-------------------------------------------------------------------------------------------------------------------------------
 ;PI*door gives around 35 cycles of the hot path. at 20MHz we might try to at 3~4MHz, depending on stm's delay etc
 SPI0_INT_vect:
-	push r1
-	in r1, SREG
-	push r1
+	push r16
+	in r16, SREG
 	push r16 ;use r16 for SPI0.DATA
 	push r17 ;use r17 for spi_state.transmission_state
 	push r30 ;use Z for spi_state.dma_pointer
 	push r31
 
-	lds r16, SPI0_DATA
 	lds r30, SPI_STATE_DMA_PTR
 	lds r31, SPI_STATE_DMA_PTR + 1
 	lds r17, SPI_STATE_TRANSMISSION_STATE
@@ -23,13 +22,12 @@ SPI0_INT_vect:
 	bst r17, 2; transfer active bit into T
 	brbc 6, activate; branch if not actively transfering
 
-	mov r1, r16
-
 	ld r16, Z ;SPI0.DATA = *spi_state.dma_pointer
-
 	sts SPI0_DATA, r16
+
+	lds r16, SPI0_DATA
 	sbrc r17, 1; if(WRITE) *spi_state.dma_pointer = data
-	st Z, r1
+	st Z, r6
 
 	;uint8_t pos = (int)(void*)spi_state.dma_pointer;
 	;*(uint8_t*)(void*)&spi_state.dma_pointer = ++pos;
@@ -38,13 +36,14 @@ SPI0_INT_vect:
 
 	rjmp end_spi_int_vect
 activate:
-	mov r30, r16 ;*(uint8_t*)(void*)spi_state.dma_pointer = data;
+	;I skipped using intermidiate register for initial data, directly putting it into lower byte of the pointer and then going off there
+	lds r30, SPI0_DATA;*(uint8_t*)(void*)spi_state.dma_pointer = data;
 	ld r16, Z
-
 	sts SPI0_DATA, r16;SPI0.DATA = *spi_state.dma_pointer
 
 	ldi r17, 4; set actively transfering
-	bst r16, 7; transfering R/W bit
+
+	bst r30, 7; transfering R/W bit
 	bld r17, 1
 
 	sts SPI_STATE_TRANSMISSION_STATE, r17; store into memory
@@ -54,12 +53,12 @@ end_spi_int_vect:
 	pop r30
 	pop r17
 	pop r16
-	pop r1
-	out SREG, r1
-	pop r1
+	out SREG, r16
+	pop r16
 
 	reti
 
+;-------------------------------------------------------------------------------------------------------------------------------
 
 SS_PORT_INTERRUPT_VECT: ;hot path CANNOT alter SREG. this shaves off 2 cycles
 	;push r17
