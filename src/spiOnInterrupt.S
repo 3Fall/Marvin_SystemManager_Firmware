@@ -1,82 +1,55 @@
 #include <avr/io.h>
 #include "spiSlave.hpp"
 
-.global __vector_16 ;export the symbol
+;export the symbols
+.global SPI0_INT_vect 
+.global SS_PORT_INTERRUPT_VECT
 
-__vector_16:
-	push r1 ;save system state
+;PI*door gives around 35 cycles of the hot path. at 20MHz we might try to at 3~4MHz, depending on stm's delay etc
+SPI0_INT_vect:
+	push r1
 	in r1, SREG
 	push r1
-	push r16 ;SPI0.DATA
-	push r17 ;work reg
-
-	push r30 ;spi_state.dme_ptr
-	push r31 ; high ^
+	push r16 ;use r16 for SPI0.DATA
+	push r17 ;use r17 for spi_state.transmission_state
+	push r30 ;use Z for spi_state.dma_pointer
+	push r31
 
 	lds r16, SPI0_DATA
 	lds r30, SPI_STATE_DMA_PTR
 	lds r31, SPI_STATE_DMA_PTR + 1
+	lds r17, SPI_STATE_TRANSMISSION_STATE
 
-	lds r17, SPI_STATE_ACTIVE ;if (!spi_state.active) goto is_inactive
-	and r17, r17
-	breq activate
+	bst r17, 2; transfer active bit into T
+	brbc 6, activate; branch if not actively transfering
 
-	lds r17, SPI0_INTFLAGS 
-	andi r17, SPI_TXCIE_bm
-	brne last_packet ;if (SPI0.INTFLAGS & SPI_TXCIE_bm == 0): goto last_packet
+	mov r1, r16
 
-;if(spi_state.active && !(SPI0.INTFLAGS & SPI_TXCIE_bm))):
-	ld r17, Z ;data = *spi_state.dma_pointer
-	sts SPI0_DATA, r17
+	ld r16, Z ;SPI0.DATA = *spi_state.dma_pointer
 
-	lds r17, SPI_STATE_DIRECTION;if (spi_state.direction) *spi_state.dma_pointer = data;
-	sbrc r17, 0
-	st Z, r16 
+	sts SPI0_DATA, r16
+	sbrc r17, 1; if(WRITE) *spi_state.dma_pointer = data
+	st Z, r1
 
-	inc r30 ;magick to minimise number of operands, while preventing overflows, little endian
+	;uint8_t pos = (int)(void*)spi_state.dma_pointer;
+	;*(uint8_t*)(void*)&spi_state.dma_pointer = ++pos;
+	inc r30
 	sts SPI_STATE_DMA_PTR, r30
 
-	rjmp end
-
-;if(!spi_state.active && !(SPI0.INTFLAGS & SPI_TXCIE_bm)))
+	rjmp end_spi_int_vect
 activate:
-	bst r16, 7 ;spi_State.directrion = (SPI0.DATA >> 7)
-	eor r17, r17 ;r17 = 0
-	bld r17, 0
-	sts SPI_STATE_DIRECTION, r17
-
-	;spi_state.dma_pointer = (uint8_t*)((int)spi_state.dma_base_address | data);
-	;SPI0.DATA = *spi_state.dma_base_address;
-	eor r30, r30
-	sts SPI_STATE_DMA_PTR, r16
+	mov r30, r16 ;*(uint8_t*)(void*)spi_state.dma_pointer = data;
 	ld r16, Z
-	sts SPI0_DATA, r16
 
-	rjmp end	
+	sts SPI0_DATA, r16;SPI0.DATA = *spi_state.dma_pointer
 
-;if(spi_state.active && (SPI0.INTFLAGS & SPI_TXCIE_bm)))
-last_packet: 
-	;SPI0.INTFLAGS |= SPI_TXCIF_bm;
-	ldi r17, SPI_TXCIF_bm
-	sts SPI0_INTFLAGS, r17
+	ldi r17, 4; set actively transfering
+	bst r16, 7; transfering R/W bit
+	bld r17, 1
 
-	eor r1,r1; r1 = 1
-	inc r1
+	sts SPI_STATE_TRANSMISSION_STATE, r17; store into memory
 
-	eor r17, r17
-	sts SPI_STATE_ACTIVE, r17 ;spi_state.active = 0
-	sts SPI_STATE_SHOULD_SWAP, r1 ;spi_state.active = 1
-	
-	lds r17, SPI_STATE_DIRECTION ;if(spi_state.direction)	spi_state.written = true;
-	sbrc r17, 0
-	sts SPI_STATE_WRITTEN, r1 ;spi_state.written = 1
-
-	eor r30, r30 ;SPI0.DATA = *spi_state.dma_base_address
-	ld r16, Z
-	sts SPI0_DATA, r16
-
-;pop all registers off the stack
-end:
+end_spi_int_vect:
 	pop r31
 	pop r30
 	pop r17
@@ -84,5 +57,49 @@ end:
 	pop r1
 	out SREG, r1
 	pop r1
+
+	reti
+
+
+SS_PORT_INTERRUPT_VECT: ;hot path CANNOT alter SREG. this shaves off 2 cycles
+	;push r17
+	;in r17, SREG
+	push r17
+
+	sbis SS_VPORT_IN, SS_VPORT_NUM; SS low
+	rjmp L1
+
+	push r30
+	push r31
+
+	lds r30, SPI_STATE_DMA_PTR
+	lds r31, SPI_STATE_DMA_PTR + 1
+
+	ld r17, Z
+	sts SPI0_DATA, r17
+	;takes 12 cycles, not counting interrup, which takes 5. In total we need at least 17 cycles between SS going low and first SCK transission
+
+	ldi r17, 1
+	sts SPI_STATE_TRANSMISSION_STATE, r17
+
+	pop r31
+	pop r30
+
+	rjmp L2
+
+L1:
+	in r17, SREG ;only here do we alter SREG
+	push r17
+	;transmission done. transmission_state = IDLE
+	clr r17
+	sts SPI_STATE_TRANSMISSION_STATE, r17
+
+	pop r17
+	out SREG, r17
+
+L2:	
+	pop r17
+	;out SREG, r17
+	;pop r17
 
 	reti

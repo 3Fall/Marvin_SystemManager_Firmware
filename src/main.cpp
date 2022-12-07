@@ -9,7 +9,9 @@ PPAC194X5X_DEVICE_CONTEXT pac_device;
 void setup() {
 	PAC194X5X_i2cParams param;
 	param.i2cAddress = 0x69;
-	PAC194x5x_Device_Initialize(param, pac_device, 1, 1);
+	float a = 0;
+	uint32_t b = 0;
+	PAC194x5x_Device_Initialize(param, pac_device, &a, &b);
 }
 
 void loop() {
@@ -19,10 +21,8 @@ void loop() {
 
 }
 
+
+
 void on_spi_write() {
 	bufferSwapped = true;
-}
-
-ISR(SPI0_INT_vect) {
-	spi_on_interrupt();
 }
