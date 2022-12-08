@@ -7,6 +7,8 @@ bool bufferSwapped = false;
 PPAC194X5X_DEVICE_CONTEXT pac_device;
 
 void setup() {
+	spi_slave_init();
+
 	PAC194X5X_i2cParams param;
 	param.i2cAddress = 0x69;
 	float a = 0;

@@ -5,28 +5,28 @@
 .global SPI0_INT_vect 
 .global SS_PORT_INTERRUPT_VECT
 
+;uses GPIOR3 for transmission status instead of a memory location. thus it uses one less register and doesn't one more memory fetch
+
 ;-------------------------------------------------------------------------------------------------------------------------------
-;PI*door gives around 35 cycles of the hot path. at 20MHz we might try to at 3~4MHz, depending on stm's delay etc
+;PI*eye gives around 35 cycles of the hot path. at 20MHz we might try to at 3~4MHz, depending on stm's delay etc
 SPI0_INT_vect:
 	push r16
 	in r16, SREG
 	push r16 ;use r16 for SPI0.DATA
-	push r17 ;use r17 for spi_state.transmission_state
 	push r30 ;use Z for spi_state.dma_pointer
 	push r31
 
 	lds r30, SPI_STATE_DMA_PTR
 	lds r31, SPI_STATE_DMA_PTR + 1
-	lds r17, SPI_STATE_TRANSMISSION_STATE
 
-	bst r17, 2; transfer active bit into T
-	brbc 6, activate; branch if not actively transfering
+	sbis TRANSMISSION_STATE_IOREG, 2; jump if not actively transfering
+	rjmp activate
 
 	ld r16, Z ;SPI0.DATA = *spi_state.dma_pointer
-	sts SPI0_DATA, r16
+	sts SPI0_DATA, r16 ;13 cycles to get here
 
 	lds r16, SPI0_DATA
-	sbrc r17, 1; if(WRITE) *spi_state.dma_pointer = data
+	sbic TRANSMISSION_STATE_IOREG, 1; if(WRITE) *spi_state.dma_pointer = data
 	st Z, r6
 
 	;uint8_t pos = (int)(void*)spi_state.dma_pointer;
@@ -41,17 +41,15 @@ activate:
 	ld r16, Z
 	sts SPI0_DATA, r16;SPI0.DATA = *spi_state.dma_pointer
 
-	ldi r17, 4; set actively transfering
+	sbi TRANSMISSION_STATE_IOREG, 2 ;set transfering
 
-	bst r30, 7; transfering R/W bit
-	bld r17, 1
-
-	sts SPI_STATE_TRANSMISSION_STATE, r17; store into memory
+	andi r16, (1<<7)
+	sbrc r16, 7
+	sbi TRANSMISSION_STATE_IOREG, 1
 
 end_spi_int_vect:
 	pop r31
 	pop r30
-	pop r17
 	pop r16
 	out SREG, r16
 	pop r16
@@ -59,11 +57,8 @@ end_spi_int_vect:
 	reti
 
 ;-------------------------------------------------------------------------------------------------------------------------------
-
 SS_PORT_INTERRUPT_VECT: ;hot path CANNOT alter SREG. this shaves off 2 cycles
-	;push r17
-	;in r17, SREG
-	push r17
+	push r16
 
 	sbis SS_VPORT_IN, SS_VPORT_NUM; SS low
 	rjmp L1
@@ -74,12 +69,13 @@ SS_PORT_INTERRUPT_VECT: ;hot path CANNOT alter SREG. this shaves off 2 cycles
 	lds r30, SPI_STATE_DMA_PTR
 	lds r31, SPI_STATE_DMA_PTR + 1
 
-	ld r17, Z
-	sts SPI0_DATA, r17
+	ld r16, Z
+	sts SPI0_DATA, r16
 	;takes 12 cycles, not counting interrup, which takes 5. In total we need at least 17 cycles between SS going low and first SCK transission
 
-	ldi r17, 1
-	sts SPI_STATE_TRANSMISSION_STATE, r17
+	ldi r16, 1 ;set to init
+	;sts SPI_STATE_TRANSMISSION_STATE, r17
+	out TRANSMISSION_STATE_IOREG, r16
 
 	pop r31
 	pop r30
@@ -87,18 +83,16 @@ SS_PORT_INTERRUPT_VECT: ;hot path CANNOT alter SREG. this shaves off 2 cycles
 	rjmp L2
 
 L1:
-	in r17, SREG ;only here do we alter SREG
-	push r17
+	in r16, SREG ;only here do we alter SREG
+	push r16
 	;transmission done. transmission_state = IDLE
-	clr r17
-	sts SPI_STATE_TRANSMISSION_STATE, r17
+	clr r16
+	out TRANSMISSION_STATE_IOREG, r16
 
-	pop r17
-	out SREG, r17
+	pop r16
+	out SREG, r16
 
 L2:	
-	pop r17
-	;out SREG, r17
-	;pop r17
+	pop r16
 
 	reti
