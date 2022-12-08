@@ -5,6 +5,7 @@
 bool bufferSwapped = false;
 //All values have to be cached
 PPAC194X5X_DEVICE_CONTEXT pac_device;
+SPI_STATE_t spi_state;
 
 void setup() {
 	spi_slave_init();

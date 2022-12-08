@@ -3,7 +3,7 @@
 #include "pins.h"
 #include <avr/io.h>
 
-SPI_STATE_t spi_state;
+//SPI_STATE_t spi_state;
 
 void spi_slave_init() {
 	pinMode(SPI_SS_PIN, INPUT);

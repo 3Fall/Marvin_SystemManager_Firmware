@@ -5,7 +5,8 @@
 .global SPI0_INT_vect 
 .global SS_PORT_INTERRUPT_VECT
 
-;uses GPIOR3 for transmission status instead of a memory location. thus it uses one less register and doesn't one more memory fetch
+.extern spi_state
+;uses GPIOR? for transmission status instead of a memory location. thus it uses one less register and doesn't one more memory fetch
 
 ;-------------------------------------------------------------------------------------------------------------------------------
 ;PI*eye gives around 35 cycles of the hot path. at 20MHz we might try to at 3~4MHz, depending on stm's delay etc
@@ -16,14 +17,14 @@ SPI0_INT_vect:
 	push r30 ;use Z for spi_state.dma_pointer
 	push r31
 
-	lds r30, SPI_STATE_DMA_PTR
-	lds r31, SPI_STATE_DMA_PTR + 1
+	lds r30, spi_state + SPI_STATE_DMA_PTR_OFFSET
+	lds r31, spi_state + SPI_STATE_DMA_PTR_OFFSET + 1
 
 	sbis TRANSMISSION_STATE_IOREG, 2; jump if not actively transfering
 	rjmp activate
 
 	ld r16, Z ;SPI0.DATA = *spi_state.dma_pointer
-	sts SPI0_DATA, r16 ;13 cycles to get here
+	sts SPI0_DATA, r16 ;14 cycles to get here
 
 	lds r16, SPI0_DATA
 	sbic TRANSMISSION_STATE_IOREG, 1; if(WRITE) *spi_state.dma_pointer = data
@@ -32,7 +33,7 @@ SPI0_INT_vect:
 	;uint8_t pos = (int)(void*)spi_state.dma_pointer;
 	;*(uint8_t*)(void*)&spi_state.dma_pointer = ++pos;
 	inc r30
-	sts SPI_STATE_DMA_PTR, r30
+	sts spi_state + SPI_STATE_DMA_PTR_OFFSET, r30
 
 	rjmp end_spi_int_vect
 activate:
@@ -63,11 +64,12 @@ SS_PORT_INTERRUPT_VECT: ;hot path CANNOT alter SREG. this shaves off 2 cycles
 	sbis SS_VPORT_IN, SS_VPORT_NUM; SS low
 	rjmp L1
 
+; push the first byte onto bus, set to INIT
 	push r30
 	push r31
 
-	lds r30, SPI_STATE_DMA_PTR
-	lds r31, SPI_STATE_DMA_PTR + 1
+	lds r30, spi_state + SPI_STATE_DMA_PTR_OFFSET
+	lds r31, spi_state + SPI_STATE_DMA_PTR_OFFSET + 1
 
 	ld r16, Z
 	sts SPI0_DATA, r16
@@ -83,6 +85,7 @@ SS_PORT_INTERRUPT_VECT: ;hot path CANNOT alter SREG. this shaves off 2 cycles
 	rjmp L2
 
 L1:
+	;Set TRANSMISSION_STATE to IDLE
 	in r16, SREG ;only here do we alter SREG
 	push r16
 	;transmission done. transmission_state = IDLE
