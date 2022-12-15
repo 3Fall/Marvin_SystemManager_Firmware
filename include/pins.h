@@ -6,6 +6,18 @@
 
 #include <Arduino.h>
 
+#define PAC1954_I2C_ADDR 0x10
+
+#define RSENSE_CH1 0
+#define RSENSE_CH2 0
+#define RSENSE_CH3 0
+#define RSENSE_CH4 0
+
+#define VRAIL_VBUS_CH1 0
+#define VRAIL_VBUS_CH2 0
+#define VRAIL_VBUS_CH3 0
+#define VRAIL_VBUS_CH4 0
+
 #define VBAT_EN_PIN PIN_PC3
 #define V5P_EN_PIN PIN_PC4
 #define V5L_EN_PIN PIN_PC5

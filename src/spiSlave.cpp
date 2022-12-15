@@ -1,9 +1,6 @@
 #include <Arduino.h>
 #include <spiSlave.hpp>
 #include "pins.h"
-#include <avr/io.h>
-
-//SPI_STATE_t spi_state;
 
 void spi_slave_init() {
 	pinMode(SPI_SS_PIN, INPUT);
@@ -21,11 +18,15 @@ void spi_slave_init() {
 bool spi_is_transmitting() { return ~SPI_SS_VPORT.IN & (1 << SPI_SS_PPIN); }
 
 void _spi_swap_buffers_unchecked() {
-	byte x = *(uint8_t*)((int)&spi_state.access_base_address + 1); //take high byte
-	byte y = *(uint8_t*)((int)&spi_state.dma_base_address + 1);
+	uint8_t *p1 = spi_state.buffer[0], *p2 = spi_state.buffer[1];
+	if(spi_state.dma_base_address == p1) spi_state.dma_pointer = p2;
+	else spi_state.dma_pointer = p1;
+}
 
-	*(uint8_t*)((int)&spi_state.access_base_address + 1) = y;
-	*(uint8_t*)((int)&spi_state.dma_base_address + 1) = x;
+void* spi_get_access_buffer_ptr() {
+	uint8_t *p1 = spi_state.buffer[0], *p2 = spi_state.buffer[1];
+	if(spi_state.dma_base_address == p1) return p2;
+	else return p1;
 }
 
 void spi_swap_buffers() {
